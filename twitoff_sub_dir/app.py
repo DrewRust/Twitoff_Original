@@ -10,10 +10,12 @@
 #### ---> then type: db.init_app(app)
 #### (above will associate db model with flask app)
 #### ---> exit() gets you out of the shell env
+#### db.create_all() will create the twitoff.sqlite
 
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 #### import User class
 from .db_model import db, User
+from .twitter import add_user_tweepy
 
 #### where the initial app code will live
 
@@ -30,7 +32,22 @@ def create_app():
     @app.route('/')
     def root():
         #### render a template
-        # return render_template('base.html', title='Home', users=User.query.all())
-        return "Welcome to Twitoff!"
+        return render_template('base.html', title='Home', users=User.query.all())
+        # return "Welcome to Twitoff!"
+
+    @app.route('/user', methods=['POST'])
+    @app.route('/user/<name>', methods=['GET'])
+    def user(name=None, message=''):
+        name = name or request.values['user_name']
+        try:
+            if request.method == 'POST':
+                add_user_tweepy(name)
+                message = "User {} successfully added!".format(name)
+            tweets = User.query.filter(User.username == name).one().tweet
+        except Exception as e:
+            message = "Error adding {}: {}".format(name, e)
+            tweets = []
+        return render_template('user.html', title=name, tweets=tweets, message=message)
+
 
     return app
